@@ -1,0 +1,33 @@
+# Go 编译产物（module 名为 go_bili）
+/go_bili
+/go_bili.exe
+*.test
+*.out
+
+# 日志
+*.log
+
+# 本地配置：含数据库/Redis 密钥时不要提交
+# 如需共享配置，改为提交 config.example.yml
+# config/config.yml
+
+# 临时文件
+tmp/
+*.tmp
+
+# 媒体等大文件（不属于源码）
+*.mp4
+*.mkv
+*.avi
+
+# 编辑器
+.idea
+.vscode/*
+!.vscode/extensions.json
+
+# 系统
+.DS_Store
+Thumbs.db
+
+# WorkBuddy 项目元数据
+.workbuddy/
