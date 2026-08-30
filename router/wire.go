@@ -9,8 +9,9 @@ import (
 
 // Controllers 所有控制器的集合
 type Controllers struct {
-	AuthCtrl  *controllers.AuthController
-	VideoCtrl *controllers.VideoController
+	AuthCtrl   *controllers.AuthController
+	VideoCtrl  *controllers.VideoController
+	UploadCtrl *controllers.UploadController
 }
 
 // Inject 依赖注入装配，像乐高积木一样一层层组装
@@ -25,7 +26,8 @@ func Inject() *Controllers {
 
 	// Controller 层：拿到 Service
 	return &Controllers{
-		AuthCtrl:  controllers.NewAuthController(authService),
-		VideoCtrl: controllers.NewVideoController(videoService),
+		AuthCtrl:   controllers.NewAuthController(authService),
+		VideoCtrl:  controllers.NewVideoController(videoService),
+		UploadCtrl: controllers.NewUploadController(),
 	}
 }

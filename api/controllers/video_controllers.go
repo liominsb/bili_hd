@@ -102,12 +102,12 @@ func (c *VideoController) FindVideoByID(ctx *gin.Context) {
 }
 
 func (c *VideoController) GetVideos(ctx *gin.Context) {
-	offset, err := strconv.Atoi(ctx.Param("offset"))
+	offset, err := strconv.Atoi(ctx.DefaultQuery("offset", "0"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
-	limit, err := strconv.Atoi(ctx.Param("limit"))
+	limit, err := strconv.Atoi(ctx.DefaultQuery("limit", "20"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return

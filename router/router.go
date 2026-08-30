@@ -28,8 +28,9 @@ func SetupRouter() *gin.Engine {
 		// 预检请求的结果缓存多久？(12小时内，同一个请求就不用再发 OPTIONS 探路了)
 		MaxAge: 12 * time.Hour,
 	}))
-	//r.Static("/uploads", "./uploads")
-	//
+
+	r.Static("/uploads", "./uploads")
+
 	auth := r.Group("/api/auth")
 	{
 		auth.POST("login", ctrl.AuthCtrl.Login)
@@ -39,20 +40,19 @@ func SetupRouter() *gin.Engine {
 	apiRouter := r.Group("/api/v1")
 	{
 		apiRouter.GET("videos/:id", ctrl.VideoCtrl.FindVideoByID)
-		apiRouter.GET("videos/:offset/:limit", ctrl.VideoCtrl.GetVideos)
+		apiRouter.GET("videos", ctrl.VideoCtrl.GetVideos)
+		apiRouter.POST("upload", ctrl.UploadCtrl.UploadFile)
+		apiRouter.GET("users/:id", ctrl.AuthCtrl.GetUserProfileById)
 	}
 	apiRouter.Use(middlewares.AuthMiddleware())
 	{
-		// 写操作放在鉴权之后，controller 才能从 ctx 拿到当前登录用户 ID
 		apiRouter.POST("videos", ctrl.VideoCtrl.AddNewVideo)
-		apiRouter.PUT("videos", ctrl.VideoCtrl.UpdateVideo)
+		apiRouter.PUT("videos/:id", ctrl.VideoCtrl.UpdateVideo)
 		apiRouter.DELETE("videos/:id", ctrl.VideoCtrl.DeleteVideoByID)
 
 		apiRouter.GET("users/me", ctrl.AuthCtrl.GetMyUser)
 		apiRouter.PUT("users/me", ctrl.AuthCtrl.UpdateMyUser)
 		apiRouter.PUT("users/me/psw", ctrl.AuthCtrl.Changepassword)
-
-		apiRouter.GET("users/:id", ctrl.AuthCtrl.GetUserProfileById)
 
 	}
 	return r

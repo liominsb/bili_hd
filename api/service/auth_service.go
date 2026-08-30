@@ -185,10 +185,10 @@ func (s *authServiceImpl) ChangePassword(ctx context.Context, userID uint, oldPa
 	if err := s.authRepo.UpdatePassword(ctx, userID, hashedPwd); err != nil {
 		return err
 	}
-
+	redisKey := fmt.Sprintf("auth:account:%d", user.ID)
 	// 删除缓存
 	cacheKey := userRedisKey(userID)
-	if err := s.redisClient.Del(ctx, cacheKey).Err(); err != nil {
+	if err := s.redisClient.Del(ctx, cacheKey, redisKey).Err(); err != nil {
 		fmt.Printf("删除缓存失败 UserID: %d, err: %v\n", userID, err)
 	}
 

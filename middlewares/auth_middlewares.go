@@ -21,14 +21,14 @@ func AuthMiddleware() gin.HandlerFunc {
 			// 支持 WebSocket 等无法设置 Header 的场景，从查询参数获取 token
 			token = queryToken
 		} else {
-			ctx.JSON(http.StatusUnauthorized, gin.H{"错误": "未授权"})
+			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "未授权"})
 			ctx.Abort()
 			return
 		}
 
 		claims, err := utils.ParseToken(token)
 		if err != nil {
-			ctx.JSON(http.StatusUnauthorized, gin.H{"错误": "无效令牌"})
+			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "无效令牌"})
 			ctx.Abort()
 			return
 		}
@@ -39,10 +39,10 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		if err == redis.Nil {
 			// Redis 中找不到记录，说明登录已过期或被后台强制清除
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"错误": "会话已结束或终止"})
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "会话已结束或终止"})
 			return
 		} else if err != nil {
-			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"错误": "内部服务器错误"})
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "内部服务器错误"})
 			return
 		}
 
