@@ -12,9 +12,9 @@ type VideoRepository interface {
 	UpdateVideo(ctx context.Context, video *models.VideoInfo) error
 	FindVideoByID(ctx context.Context, video *models.VideoInfo, videoID uint) error
 	FindVideoByIDWithAuthor(ctx context.Context, videoID uint) (*models.VideoInfoWithAuthor, error)
-	GetVideos(ctx context.Context, videos *[]models.VideoInfo, offset int, limit int) error
+	GetVideos(ctx context.Context, videos *[]models.VideoInfoWithAuthor, offset int, limit int) error
 	DeleteVideoByID(ctx context.Context, videoID uint) error
-	SearchVideoByTitle(ctx context.Context, videos *[]models.VideoInfo, title string, offset int, limit int) error
+	SearchVideoByTitle(ctx context.Context, videos *[]models.VideoInfoWithAuthor, title string, offset int, limit int) error
 	AddVideoLike(ctx context.Context, userid uint, videoID uint) error
 	DelVideoLike(ctx context.Context, userid uint, videoID uint) error
 	GetUserANDVideoLike(ctx context.Context, userid uint, videoID uint) (bool, error)
@@ -43,7 +43,7 @@ func (r *videoRepoImpl) FindVideoByIDWithAuthor(ctx context.Context, videoID uin
 	result := &models.VideoInfoWithAuthor{}
 	err := r.db.WithContext(ctx).
 		Table("video_infos").
-		Select("video_infos.*, users.username AS author_name, users.image AS author_image").
+		Select("video_infos.*, users.username AS author_name, users.image AS author_image, users.bio AS author_bio").
 		Joins("LEFT JOIN users ON users.id = video_infos.author_id").
 		Where("video_infos.id = ?", videoID).
 		First(result).Error
@@ -53,17 +53,29 @@ func (r *videoRepoImpl) FindVideoByIDWithAuthor(ctx context.Context, videoID uin
 	return result, nil
 }
 
-func (r *videoRepoImpl) GetVideos(ctx context.Context, videos *[]models.VideoInfo, offset int, limit int) error {
-	return r.db.WithContext(ctx).Offset(offset).Limit(limit).Find(videos).Error
+func (r *videoRepoImpl) GetVideos(ctx context.Context, videos *[]models.VideoInfoWithAuthor, offset int, limit int) error {
+	return r.db.WithContext(ctx).
+		Table("video_infos").
+		Select("video_infos.*, users.username AS author_name, users.image AS author_image, users.bio AS author_bio").
+		Joins("LEFT JOIN users ON users.id = video_infos.author_id").
+		Order("video_infos.id DESC").
+		Offset(offset).Limit(limit).
+		Scan(videos).Error
 }
 
 func (r *videoRepoImpl) DeleteVideoByID(ctx context.Context, videoID uint) error {
 	return r.db.WithContext(ctx).Where("id = ?", videoID).Delete(&models.VideoInfo{}).Error
 }
 
-func (r *videoRepoImpl) SearchVideoByTitle(ctx context.Context, videos *[]models.VideoInfo, title string, offset int, limit int) error {
-	return r.db.WithContext(ctx).Offset(offset).Limit(limit).Where("title LIKE ?", title+"%").
-		Order("id DESC").Find(videos).Error
+func (r *videoRepoImpl) SearchVideoByTitle(ctx context.Context, videos *[]models.VideoInfoWithAuthor, title string, offset int, limit int) error {
+	return r.db.WithContext(ctx).
+		Table("video_infos").
+		Select("video_infos.*, users.username AS author_name, users.image AS author_image, users.bio AS author_bio").
+		Joins("LEFT JOIN users ON users.id = video_infos.author_id").
+		Where("video_infos.title LIKE ?", title+"%").
+		Order("video_infos.id DESC").
+		Offset(offset).Limit(limit).
+		Scan(videos).Error
 }
 
 func (r *videoRepoImpl) GetUserANDVideoLike(ctx context.Context, userid uint, videoID uint) (bool, error) {

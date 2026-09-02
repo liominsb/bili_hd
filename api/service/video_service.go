@@ -16,9 +16,9 @@ type VideoService interface {
 	UpdateVideo(ctx context.Context, video *models.VideoInfo) error
 	FindVideoByID(ctx context.Context, videoID uint) (*models.VideoInfo, error)
 	FindVideoByIDWithAuthor(ctx context.Context, videoID uint) (*models.VideoInfoWithAuthor, error)
-	GetVideos(ctx context.Context, offset int, limit int) (*[]models.VideoInfo, error)
+	GetVideos(ctx context.Context, offset int, limit int) (*[]models.VideoInfoWithAuthor, error)
 	DeleteVideo(ctx context.Context, id uint) error
-	SearchVideoByTitle(ctx context.Context, title string, offset int, limit int) ([]models.VideoInfo, error)
+	SearchVideoByTitle(ctx context.Context, title string, offset int, limit int) ([]models.VideoInfoWithAuthor, error)
 	UpdateVideoLike(ctx context.Context, userid uint, videoID uint) (bool, error)
 }
 
@@ -78,10 +78,10 @@ func (s *videoServiceImpl) FindVideoByIDWithAuthor(ctx context.Context, videoID 
 	return result, nil
 }
 
-func (s *videoServiceImpl) GetVideos(ctx context.Context, offset int, limit int) (*[]models.VideoInfo, error) {
+func (s *videoServiceImpl) GetVideos(ctx context.Context, offset int, limit int) (*[]models.VideoInfoWithAuthor, error) {
 	cacheKey := fmt.Sprintf("VIDEO:%d-%d", offset, limit)
-	result, err := utils.GetCacheOrQuery(ctx, s.redisClient, cacheKey, func() (*[]models.VideoInfo, error) {
-		videos := &[]models.VideoInfo{}
+	result, err := utils.GetCacheOrQuery(ctx, s.redisClient, cacheKey, func() (*[]models.VideoInfoWithAuthor, error) {
+		videos := &[]models.VideoInfoWithAuthor{}
 		if err := s.videoRepo.GetVideos(ctx, videos, offset, limit); err != nil {
 			return nil, err
 		}
@@ -106,8 +106,8 @@ func (s *videoServiceImpl) DeleteVideo(ctx context.Context, id uint) error {
 	return nil
 }
 
-func (s *videoServiceImpl) SearchVideoByTitle(ctx context.Context, title string, offset int, limit int) ([]models.VideoInfo, error) {
-	var videos []models.VideoInfo
+func (s *videoServiceImpl) SearchVideoByTitle(ctx context.Context, title string, offset int, limit int) ([]models.VideoInfoWithAuthor, error) {
+	var videos []models.VideoInfoWithAuthor
 	if title == "" {
 		return videos, nil
 	}

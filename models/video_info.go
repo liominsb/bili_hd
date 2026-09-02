@@ -29,6 +29,7 @@ type VideoInfoWithAuthor struct {
 	VideoInfo
 	AuthorName  string `json:"author_name"`
 	AuthorImage string `json:"author_image"`
+	AuthorBio   string `json:"author_bio"`
 }
 
 type VideoLike struct {
