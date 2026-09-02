@@ -19,5 +19,12 @@ type Comments struct {
 }
 
 type CommentInput struct {
-	Content string `form:"content" json:"content"`
+	ParentId uint   `gorm:"index;default:0" json:"parent_id"` // 0 = 一级评论
+	Content  string `form:"content" json:"content"`
+}
+
+type CommentInfo struct {
+	Comments
+	AuthorName  string `json:"author_name"`
+	AuthorImage string `json:"author_image"`
 }

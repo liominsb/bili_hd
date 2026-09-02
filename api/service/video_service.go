@@ -15,8 +15,11 @@ type VideoService interface {
 	AddNewVideo(ctx context.Context, video *models.VideoInfo) error
 	UpdateVideo(ctx context.Context, video *models.VideoInfo) error
 	FindVideoByID(ctx context.Context, videoID uint) (*models.VideoInfo, error)
-	GetVideos(ctx context.Context, offset int, limit int) ([]models.VideoInfo, error)
+	FindVideoByIDWithAuthor(ctx context.Context, videoID uint) (*models.VideoInfoWithAuthor, error)
+	GetVideos(ctx context.Context, offset int, limit int) (*[]models.VideoInfo, error)
 	DeleteVideo(ctx context.Context, id uint) error
+	SearchVideoByTitle(ctx context.Context, title string, offset int, limit int) ([]models.VideoInfo, error)
+	UpdateVideoLike(ctx context.Context, userid uint, videoID uint) (bool, error)
 }
 
 type videoServiceImpl struct {
@@ -64,13 +67,30 @@ func (s *videoServiceImpl) FindVideoByID(ctx context.Context, videoID uint) (*mo
 	return result, nil
 }
 
-func (s *videoServiceImpl) GetVideos(ctx context.Context, offset int, limit int) ([]models.VideoInfo, error) {
-	var videos []models.VideoInfo
-	err := s.videoRepo.GetVideos(ctx, &videos, offset, limit)
+func (s *videoServiceImpl) FindVideoByIDWithAuthor(ctx context.Context, videoID uint) (*models.VideoInfoWithAuthor, error) {
+	cacheKey := fmt.Sprintf("VIDEO:%d:author", videoID)
+	result, err := utils.GetCacheOrQuery(ctx, s.redisClient, cacheKey, func() (*models.VideoInfoWithAuthor, error) {
+		return s.videoRepo.FindVideoByIDWithAuthor(ctx, videoID)
+	})
 	if err != nil {
 		return nil, err
 	}
-	return videos, nil
+	return result, nil
+}
+
+func (s *videoServiceImpl) GetVideos(ctx context.Context, offset int, limit int) (*[]models.VideoInfo, error) {
+	cacheKey := fmt.Sprintf("VIDEO:%d-%d", offset, limit)
+	result, err := utils.GetCacheOrQuery(ctx, s.redisClient, cacheKey, func() (*[]models.VideoInfo, error) {
+		videos := &[]models.VideoInfo{}
+		if err := s.videoRepo.GetVideos(ctx, videos, offset, limit); err != nil {
+			return nil, err
+		}
+		return videos, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func (s *videoServiceImpl) DeleteVideo(ctx context.Context, id uint) error {
@@ -84,5 +104,31 @@ func (s *videoServiceImpl) DeleteVideo(ctx context.Context, id uint) error {
 		log.Println("删除视频缓存失败:", err)
 	}
 	return nil
+}
 
+func (s *videoServiceImpl) SearchVideoByTitle(ctx context.Context, title string, offset int, limit int) ([]models.VideoInfo, error) {
+	var videos []models.VideoInfo
+	if title == "" {
+		return videos, nil
+	}
+	err := s.videoRepo.SearchVideoByTitle(ctx, &videos, title, offset, limit)
+	if err != nil {
+		return nil, err
+	}
+	return videos, nil
+}
+
+func (s *videoServiceImpl) UpdateVideoLike(ctx context.Context, userid uint, videoID uint) (bool, error) {
+	ok, err := s.videoRepo.GetUserANDVideoLike(ctx, userid, videoID)
+	if err != nil {
+		return false, err
+	}
+	if ok == true {
+		return false, s.videoRepo.DelVideoLike(ctx, userid, videoID)
+	}
+	err = s.videoRepo.AddVideoLike(ctx, userid, videoID)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }

@@ -43,17 +43,23 @@ func SetupRouter() *gin.Engine {
 		apiRouter.GET("videos", ctrl.VideoCtrl.GetVideos)
 		apiRouter.POST("upload", ctrl.UploadCtrl.UploadFile)
 		apiRouter.GET("users/:id", ctrl.AuthCtrl.GetUserProfileById)
+		apiRouter.GET("videos/:id/comments", ctrl.CommentCtrl.GetCommentsByVideoId)
 	}
 	apiRouter.Use(middlewares.AuthMiddleware())
 	{
 		apiRouter.POST("videos", ctrl.VideoCtrl.AddNewVideo)
 		apiRouter.PUT("videos/:id", ctrl.VideoCtrl.UpdateVideo)
+		apiRouter.PUT("videos/:id/like", ctrl.VideoCtrl.UpdateVideoLike)
 		apiRouter.DELETE("videos/:id", ctrl.VideoCtrl.DeleteVideoByID)
 
 		apiRouter.GET("users/me", ctrl.AuthCtrl.GetMyUser)
 		apiRouter.PUT("users/me", ctrl.AuthCtrl.UpdateMyUser)
 		apiRouter.PUT("users/me/psw", ctrl.AuthCtrl.Changepassword)
+		apiRouter.GET("videos/search", ctrl.VideoCtrl.SearchVideoByTitle)
 
+		apiRouter.POST("videos/:id/comments", ctrl.CommentCtrl.AddNewComment)
+		apiRouter.PUT("comments/:id", ctrl.CommentCtrl.UpdateComment)
+		apiRouter.DELETE("comments/:id", ctrl.CommentCtrl.DeleteCommentByID)
 	}
 	return r
 }

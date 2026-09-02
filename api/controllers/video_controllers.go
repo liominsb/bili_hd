@@ -92,7 +92,7 @@ func (c *VideoController) FindVideoByID(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
-	video, err := c.videoService.FindVideoByID(ctx, uint(id))
+	video, err := c.videoService.FindVideoByIDWithAuthor(ctx, uint(id))
 	if err != nil {
 		log.Println("查找视频失败:", err.Error())
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -118,7 +118,7 @@ func (c *VideoController) GetVideos(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"videos": videos})
+	ctx.JSON(http.StatusOK, gin.H{"videos": *videos})
 }
 
 func (c *VideoController) DeleteVideoByID(ctx *gin.Context) {
@@ -148,4 +148,45 @@ func (c *VideoController) DeleteVideoByID(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"message": "视频删除成功"})
+}
+
+func (c *VideoController) SearchVideoByTitle(ctx *gin.Context) {
+	title := ctx.Query("title")
+	offset, err := strconv.Atoi(ctx.DefaultQuery("offset", "0"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+	limit, err := strconv.Atoi(ctx.DefaultQuery("limit", "20"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+	videos, err := c.videoService.SearchVideoByTitle(ctx, title, offset, limit)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"videos": videos})
+}
+
+func (c *VideoController) UpdateVideoLike(ctx *gin.Context) {
+	userId, ok := ctx.Get("ID")
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "未授权"})
+		return
+	}
+	videoId, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+	ok, err = c.videoService.UpdateVideoLike(ctx, userId.(uint), uint(videoId))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	//ok指当前是否已赞，true为已赞
+	ctx.JSON(http.StatusOK, gin.H{"ok": ok})
 }
