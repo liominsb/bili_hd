@@ -16,6 +16,8 @@ type VideoInfo struct {
 	Pic       string         `json:"pic"`
 	VideoUrl  string         `json:"video_url"`
 	LikeCount int            `gorm:"default:0" json:"like_count"`
+	//// 状态字段：0: 转码处理中, 1: 正常/已发布, 2: 转码失败
+	//Status int `gorm:"default:0;index" json:"status"`
 }
 
 type VideoInput struct {

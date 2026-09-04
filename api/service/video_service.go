@@ -16,7 +16,7 @@ type VideoService interface {
 	UpdateVideo(ctx context.Context, video *models.VideoInfo) error
 	FindVideoByID(ctx context.Context, videoID uint) (*models.VideoInfo, error)
 	FindVideoByIDWithAuthor(ctx context.Context, videoID uint) (*models.VideoInfoWithAuthor, error)
-	GetVideos(ctx context.Context, offset int, limit int) (*[]models.VideoInfoWithAuthor, error)
+	GetVideos(ctx context.Context, offset int, limit int) ([]models.VideoInfoWithAuthor, error)
 	DeleteVideo(ctx context.Context, id uint) error
 	SearchVideoByTitle(ctx context.Context, title string, offset int, limit int) ([]models.VideoInfoWithAuthor, error)
 	UpdateVideoLike(ctx context.Context, userid uint, videoID uint) (bool, error)
@@ -32,13 +32,11 @@ func NewVideoService(videoRepo repository.VideoRepository, redisClient *redis.Cl
 }
 
 func (s *videoServiceImpl) AddNewVideo(ctx context.Context, video *models.VideoInfo) error {
-	err := s.videoRepo.AddNewVideo(ctx, video)
-	if err != nil {
+	if err := s.videoRepo.AddNewVideo(ctx, video); err != nil {
 		return err
 	}
 	return nil
 }
-
 func (s *videoServiceImpl) UpdateVideo(ctx context.Context, video *models.VideoInfo) error {
 	cacheKey := fmt.Sprintf("VIDEO:%d", video.ID)
 	err := s.videoRepo.UpdateVideo(ctx, video)
@@ -78,19 +76,12 @@ func (s *videoServiceImpl) FindVideoByIDWithAuthor(ctx context.Context, videoID 
 	return result, nil
 }
 
-func (s *videoServiceImpl) GetVideos(ctx context.Context, offset int, limit int) (*[]models.VideoInfoWithAuthor, error) {
-	cacheKey := fmt.Sprintf("VIDEO:%d-%d", offset, limit)
-	result, err := utils.GetCacheOrQuery(ctx, s.redisClient, cacheKey, func() (*[]models.VideoInfoWithAuthor, error) {
-		videos := &[]models.VideoInfoWithAuthor{}
-		if err := s.videoRepo.GetVideos(ctx, videos, offset, limit); err != nil {
-			return nil, err
-		}
-		return videos, nil
-	})
-	if err != nil {
+func (s *videoServiceImpl) GetVideos(ctx context.Context, offset int, limit int) ([]models.VideoInfoWithAuthor, error) {
+	videos := &[]models.VideoInfoWithAuthor{}
+	if err := s.videoRepo.GetVideos(ctx, videos, offset, limit); err != nil {
 		return nil, err
 	}
-	return result, nil
+	return *videos, nil
 }
 
 func (s *videoServiceImpl) DeleteVideo(ctx context.Context, id uint) error {

@@ -118,7 +118,7 @@ func (c *VideoController) GetVideos(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"videos": *videos})
+	ctx.JSON(http.StatusOK, gin.H{"videos": videos})
 }
 
 func (c *VideoController) DeleteVideoByID(ctx *gin.Context) {

@@ -49,4 +49,5 @@ func InitConfig() {
 	defer cancel()
 	initDB()
 	initRedis(ctx)
+	InitRabbitMQ()
 }

@@ -210,11 +210,18 @@ func (s *authServiceImpl) UpdateProfile(ctx context.Context, userID uint, userna
 // RefreshTokens 使用 Refresh Token 换取新的双 Token
 func (s *authServiceImpl) RefreshTokens(ctx context.Context, accountID uint, incomingRT string, username string) (string, string, error) {
 	redisKey := fmt.Sprintf("auth:account:%d", accountID)
-
+	prevKey := redisKey + ":prev"
 	// 1. 验证传入的 RT 是否与 Redis 中记录的当前合法 RT 一致
 	storedRT, err := s.redisClient.HGet(ctx, redisKey, "refresh_token").Result()
 	if err != nil || storedRT != incomingRT {
 		// RT 不匹配或已失效，强制要求重新走密码登录
+		prevRT, _ := s.redisClient.Get(ctx, prevKey).Result()
+		if prevRT != "" && prevRT == incomingRT {
+			sessionID, _ := s.redisClient.HGet(ctx, redisKey, "session_id").Result()
+			if token, e := utils.GenerateToken(accountID, username, sessionID); e == nil {
+				return token, storedRT, nil // 沿用当前 session 和 RT，只补发 access token
+			}
+		}
 		return "", "", errors.New("RT 不匹配或已失效，强制要求重新走密码登录")
 	}
 
@@ -230,7 +237,7 @@ func (s *authServiceImpl) RefreshTokens(ctx context.Context, accountID uint, inc
 	if err != nil {
 		return "", "", err
 	}
-
+	s.redisClient.Set(ctx, prevKey, storedRT, 30*time.Second)
 	// 使用 Redis Hash 存储当前合法的 Session 和 RT，设置 7 天过期
 	err = s.redisClient.HSet(ctx, redisKey,
 		"session_id", sessionID,
@@ -242,5 +249,4 @@ func (s *authServiceImpl) RefreshTokens(ctx context.Context, accountID uint, inc
 	s.redisClient.Expire(ctx, redisKey, 7*24*time.Hour)
 
 	return token, refreshToken, nil
-
 }

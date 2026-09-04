@@ -5,6 +5,7 @@ import (
 	"errors"
 	"go_bili/config"
 	"go_bili/router"
+	"go_bili/utils"
 	"log"
 	"net/http"
 	"os"
@@ -30,7 +31,7 @@ func main() {
 			log.Fatalf("listen: %s\n", err)
 		}
 	}()
-
+	go utils.Worker()
 	_, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	quit := make(chan os.Signal, 1)
