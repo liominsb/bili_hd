@@ -225,8 +225,11 @@ func (s *authServiceImpl) RefreshTokens(ctx context.Context, accountID uint, inc
 		return "", "", errors.New("RT 不匹配或已失效，强制要求重新走密码登录")
 	}
 
-	// 1. 生成唯一会话标识
-	sessionID := uuid.New().String()
+
+	sessionID, err := s.redisClient.HGet(ctx, redisKey, "session_id").Result()
+	if err != nil {
+		return "", "", errors.New("会话已失效，请重新登录")
+	}
 
 	token, err := utils.GenerateToken(accountID, username, sessionID)
 	if err != nil {
