@@ -44,6 +44,11 @@ func SetupRouter() *gin.Engine {
 		apiRouter.POST("upload", ctrl.UploadCtrl.UploadFile)
 		apiRouter.GET("users/:id", ctrl.AuthCtrl.GetUserProfileById)
 		apiRouter.GET("videos/:id/comments", ctrl.CommentCtrl.GetCommentsByVideoId)
+
+		// 关注系统：stats / 粉丝列表 / 关注列表 公开，未登录也能看
+		apiRouter.GET("users/:id/follow/stats", ctrl.FollowCtrl.GetFollowStats)
+		apiRouter.GET("users/:id/followers", ctrl.FollowCtrl.ListFollowers)
+		apiRouter.GET("users/:id/following", ctrl.FollowCtrl.ListFollowing)
 	}
 	apiRouter.Use(middlewares.AuthMiddleware())
 	{
@@ -60,6 +65,10 @@ func SetupRouter() *gin.Engine {
 		apiRouter.POST("videos/:id/comments", ctrl.CommentCtrl.AddNewComment)
 		apiRouter.PUT("comments/:id", ctrl.CommentCtrl.UpdateComment)
 		apiRouter.DELETE("comments/:id", ctrl.CommentCtrl.DeleteCommentByID)
+
+		// 关注/取关需要登录
+		apiRouter.PUT("users/:id/follow", ctrl.FollowCtrl.Follow)
+		apiRouter.DELETE("users/:id/follow", ctrl.FollowCtrl.Unfollow)
 	}
 	return r
 }
