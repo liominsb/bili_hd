@@ -16,6 +16,8 @@ type VideoInfo struct {
 	Pic       string         `json:"pic"`
 	VideoUrl  string         `json:"video_url"`
 	LikeCount int            `gorm:"default:0" json:"like_count"`
+	ViewCount int            `gorm:"default:0" json:"view_count"`
+	Duration  int            `gorm:"default:0" json:"duration"` // 视频总时长，秒
 	//// 状态字段：0: 转码处理中, 1: 正常/已发布, 2: 转码失败
 	//Status int `gorm:"default:0;index" json:"status"`
 }
@@ -24,6 +26,7 @@ type VideoInput struct {
 	Title    string `json:"title"`
 	Pic      string `json:"pic"`
 	VideoUrl string `json:"video_url"`
+	Duration int    `json:"duration"` // 前端上传页从本地文件读出的时长
 }
 
 // VideoInfoWithAuthor 视频详情 + 作者信息（联表结果，非数据库表）

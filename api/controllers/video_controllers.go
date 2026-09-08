@@ -36,6 +36,7 @@ func (c *VideoController) AddNewVideo(ctx *gin.Context) {
 	videoInfo.Pic = videoInput.Pic
 	videoInfo.Title = videoInput.Title
 	videoInfo.AuthorId = userId.(uint)
+	videoInfo.Duration = videoInput.Duration
 	err = c.videoService.AddNewVideo(ctx, &videoInfo)
 	if err != nil {
 		log.Println("添加新视频失败:", err.Error())

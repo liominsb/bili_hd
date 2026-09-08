@@ -72,7 +72,7 @@ func (r *videoRepoImpl) SearchVideoByTitle(ctx context.Context, videos *[]models
 		Table("video_infos").
 		Select("video_infos.*, users.username AS author_name, users.image AS author_image, users.bio AS author_bio").
 		Joins("LEFT JOIN users ON users.id = video_infos.author_id").
-		Where("video_infos.title LIKE ?", title+"%").
+		Where("video_infos.title LIKE ?", "%"+title+"%").
 		Order("video_infos.id DESC").
 		Offset(offset).Limit(limit).
 		Scan(videos).Error
