@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"go_bili/api/service"
 	"go_bili/models"
 	"log"
@@ -190,4 +191,8 @@ func (c *VideoController) UpdateVideoLike(ctx *gin.Context) {
 
 	//ok指当前是否已赞，true为已赞
 	ctx.JSON(http.StatusOK, gin.H{"ok": ok})
+}
+
+func (c *VideoController) SyncViewCounts(ctx context.Context) {
+	c.videoService.SyncViewCounts(ctx)
 }

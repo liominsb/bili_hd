@@ -44,6 +44,7 @@ func Setcache(ctx context.Context, key string, value interface{}) error {
 		return err
 	}
 	a := time.Duration(rand.IntN(60) + 10) //防雪崩
+	//缓存时间10-70分钟
 	if err := global.RedisDB.Set(ctx, key, valueJSON, a*time.Minute).Err(); err != nil {
 		return err
 	}

@@ -18,6 +18,7 @@ type VideoRepository interface {
 	AddVideoLike(ctx context.Context, userid uint, videoID uint) error
 	DelVideoLike(ctx context.Context, userid uint, videoID uint) error
 	GetUserANDVideoLike(ctx context.Context, userid uint, videoID uint) (bool, error)
+	SyncViewCounts(ctx context.Context, videoID uint, count int) error
 }
 type videoRepoImpl struct {
 	db *gorm.DB
@@ -115,4 +116,9 @@ func (r *videoRepoImpl) DelVideoLike(ctx context.Context, userid uint, videoID u
 		}
 		return nil
 	})
+}
+
+// SyncViewCounts count:追加的播放量
+func (r *videoRepoImpl) SyncViewCounts(ctx context.Context, videoID uint, count int) error {
+	return r.db.WithContext(ctx).Model(&models.VideoInfo{}).Where("id = ?", videoID).UpdateColumn("view_count", gorm.Expr("view_count + ?", count)).Error
 }
