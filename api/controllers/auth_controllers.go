@@ -28,15 +28,15 @@ type AuthInput struct {
 func (c *AuthController) Register(ctx *gin.Context) {
 	var input AuthInput
 	if err := ctx.ShouldBind(&input); err != nil {
-		log.Println("登录参数错误:", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Println("注册参数错误:", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "注册参数错误:" + err.Error()})
 		return
 	}
 
 	token, refreshToken, err := c.authService.Register(ctx.Request.Context(), input.Username, input.Password)
 	if err != nil {
 		log.Println("注册失败:", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "注册失败:" + err.Error()})
 		return
 	}
 
@@ -50,14 +50,14 @@ func (c *AuthController) Login(ctx *gin.Context) {
 	var input AuthInput
 	if err := ctx.ShouldBind(&input); err != nil {
 		log.Println("登录参数错误:", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "登录参数错误:" + err.Error()})
 		return
 	}
 
 	token, refreshToken, err := c.authService.Login(ctx.Request.Context(), input.Username, input.Password)
 	if err != nil {
 		log.Println("登录失败:", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "登录失败:" + err.Error()})
 		return
 	}
 

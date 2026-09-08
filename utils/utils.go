@@ -9,6 +9,7 @@ import (
 	"math/rand/v2"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 	"unicode"
@@ -142,7 +143,8 @@ func FilterSymbolsFast(s string) string {
 }
 
 func Faststart(path string) error {
-	tmp := path + ".tmp"
+	ext := filepath.Ext(path)
+	tmp := strings.TrimSuffix(path, ext) + ".faststart" + ext // uploads/xxx.faststart.mp4
 	cmd := exec.Command("ffmpeg", "-y",
 		"-i", path,
 		"-c", "copy",
@@ -152,11 +154,17 @@ func Faststart(path string) error {
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Printf("faststart 失败(不影响上传): %v, %s", err, out)
+		os.Remove(tmp)
 		return err
 	}
-	if err := os.Remove(path); err != nil {
-		log.Println("faststart 删除原文件失败:", err)
-		return err
+	var renameErr error
+	for i := 0; i < 5; i++ { // Windows 上文件可能被播放器/杀软短暂占用，失败重试几次
+		if renameErr = os.Rename(tmp, path); renameErr == nil {
+			return nil
+		}
+		time.Sleep(200 * time.Millisecond)
 	}
-	return os.Rename(tmp, path)
+	log.Println("faststart 替换原文件失败:", renameErr)
+	os.Remove(tmp) // 走到这里说明原文件没被动过，删掉 tmp 即可，视频还能正常播
+	return renameErr
 }

@@ -20,7 +20,7 @@ import (
 
 const (
 	uploadDir     = "uploads"
-	maxUploadSize = 1000 << 20 // 1000MB
+	maxUploadSize = 10000 << 20 // 10000MB
 )
 
 // 允许的文件后缀（白名单）
@@ -62,36 +62,38 @@ func (c *UploadController) UploadFile(ctx *gin.Context) {
 		return
 	}
 
-	// 2. 发送 MQ 消息
-	body, _ := json.Marshal(models.VideoTranscodeMsg{
-		FName:    fName,
-		FilePath: savePath, // 本地磁盘相对路径
-	})
-	ch, err := global.MQConn.Channel()
-	if err != nil {
-		log.Println("创建MQ通道失败:", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	defer ch.Close()
-	ctxMQ, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	err = ch.PublishWithContext(ctxMQ,
-		"",            // default exchange
-		"video_queue", // routing key / queue name
-		false,
-		false,
-		amqp.Publishing{
-			DeliveryMode: amqp.Persistent, // 消息持久化
-			ContentType:  "application/json",
-			Body:         body,
-		},
-	)
-	if err != nil {
-		log.Println("发送MQ消息失败:", err)
-		os.Remove(savePath)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+	if ext == ".mp4" {
+		// 2. 发送 MQ 消息
+		body, _ := json.Marshal(models.VideoTranscodeMsg{
+			FName:    fName,
+			FilePath: savePath, // 本地磁盘相对路径
+		})
+		ch, err := global.MQConn.Channel()
+		if err != nil {
+			log.Println("创建MQ通道失败:", err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		defer ch.Close()
+		ctxMQ, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		err = ch.PublishWithContext(ctxMQ,
+			"",            // default exchange
+			"video_queue", // routing key / queue name
+			false,
+			false,
+			amqp.Publishing{
+				DeliveryMode: amqp.Persistent, // 消息持久化
+				ContentType:  "application/json",
+				Body:         body,
+			},
+		)
+		if err != nil {
+			log.Println("发送MQ消息失败:", err)
+			os.Remove(savePath)
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 	}
 
 	// 5. 把可访问地址返回给前端

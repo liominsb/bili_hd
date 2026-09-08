@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"time"
 )
 
@@ -31,15 +32,21 @@ func main() {
 			log.Fatalf("listen: %s\n", err)
 		}
 	}()
-	go utils.Worker()
-	_, cancel := context.WithCancel(context.Background())
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		utils.Worker(ctx)
+	}()
+
 	defer cancel()
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt) //监听系统中断信号
 	<-quit
 	log.Println("服务器正在关闭...")
-	cancel()
-	log.Println("已通知后台任务停止，等待 HTTP 请求处理完成...")
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer shutdownCancel()
@@ -47,6 +54,8 @@ func main() {
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Fatal("服务器强行关闭或超时异常: ", err)
 	}
-
+	cancel()
+	log.Println("已通知后台任务停止，等待 HTTP 请求处理完成...")
+	wg.Wait()
 	log.Println("服务器已成功优雅退出")
 }
