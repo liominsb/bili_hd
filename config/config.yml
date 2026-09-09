@@ -1,12 +1,32 @@
+#app:
+#  name: App
+#  port: :3000
+#
+#database:
+#  dsn : "root:123456@tcp(127.0.0.1:3306)/go_bili?charset=utf8mb4&parseTime=True&loc=Local"
+#  MaxIdleConns: 10
+#  MaxOpenConns: 100
+#  Addr : "localhost:6379"
+#  Password : ""
+#  SubSwitch : "false"
+#
+#JWT:
+#  Key : "JWT_SECRET"
+#
+#RabbitMQ:
+#  Url: "amqp://guest:guest@localhost:5672/"
+#
+#Grpc:
+#  Addr: "localhost:50051"
 app:
   name: App
   port: :3000
 
 database:
-  dsn : "root:123456@tcp(127.0.0.1:3306)/go_bili?charset=utf8mb4&parseTime=True&loc=Local"
+  dsn : "root:123456@tcp(host.docker.internal:3306)/go_bili?charset=utf8mb4&parseTime=True&loc=Local"
   MaxIdleConns: 10
   MaxOpenConns: 100
-  Addr : "localhost:6379"
+  Addr : "host.docker.internal:6379"
   Password : ""
   SubSwitch : "false"
 
@@ -14,7 +34,7 @@ JWT:
   Key : "JWT_SECRET"
 
 RabbitMQ:
-  Url: "amqp://guest:guest@localhost:5672/"
+  Url: "amqp://guest:guest@host.docker.internal:5672/"
 
 Grpc:
-  Addr: "localhost:50051"
+  Addr: "host.docker.internal:50051"

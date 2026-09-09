@@ -1,0 +1,23 @@
+app:
+  name: App
+  port: :3000
+
+database:
+  # MySQL 地址直接写容器服务名 mysql
+  dsn: "root:123456@tcp(mysql:3306)/go_bili?charset=utf8mb4&parseTime=True&loc=Local"
+  MaxIdleConns: 10
+  MaxOpenConns: 100
+  # Redis 地址直接写容器服务名 redis
+  Addr: "redis:6379"
+  Password: ""
+  SubSwitch: "false"
+
+JWT:
+  Key: "JWT_SECRET_PROD_BILI"
+
+RabbitMQ:
+  # RabbitMQ 地址直接写容器服务名 rabbitmq
+  Url: "amqp://guest:guest@rabbitmq:5672/"
+
+Grpc:
+  Addr: "localhost:50051"

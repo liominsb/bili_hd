@@ -71,16 +71,14 @@ func (s *videoServiceImpl) FindVideoByID(ctx context.Context, videoID uint) (*mo
 
 func (s *videoServiceImpl) FindVideoByIDWithAuthor(ctx context.Context, videoID uint) (*models.VideoInfoWithAuthor, error) {
 	cacheKey := fmt.Sprintf("VIDEO:%d:author", videoID)
+	//展示滞后被缓存放大：详情走 GetCacheOrQuery，整个 VideoInfo 连 view_count 一起缓存 10~70 分钟。
+	//所以页面上看到的播放数最多滞后一小时，10 秒同步的及时性全被这层缓存吃了。
 	result, err := utils.GetCacheOrQuery(ctx, s.redisClient, cacheKey, func() (*models.VideoInfoWithAuthor, error) {
 		return s.videoRepo.FindVideoByIDWithAuthor(ctx, videoID)
 	})
 	if err != nil {
 		return nil, err
 	}
-	// 一条命令干两件事：记一次播放 + 拿到还没落库的增量（INCR 的返回值就是自增后的值）
-	// 展示校准只治"Redis 里还没搬走的 ≤10 秒"；缓存对象岁数里的已落库量治不了，可接受
-	// Incr 失败（Redis 挂）则降级：不记数、不叠加，视频照常返回——
-	// 跟 GetCacheOrQuery 的降级哲学一致，不能让 Redis 把详情页拖成 500
 	delta, err := s.redisClient.Incr(ctx, "video:views:"+strconv.FormatUint(uint64(result.ID), 10)).Result()
 	if err == nil {
 		result.ViewCount += int(delta)

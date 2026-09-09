@@ -1,0 +1,13 @@
+# 忽略编译出来的本地二进制
+*.exe
+server
+
+# 忽略本地 Git 和 IDE 配置文件
+.git
+.idea
+.vscode
+
+# 忽略运行时生成的资源和上传文件（后续我们会用挂载的方式接入）
+uploads/
+*.log
+*.tmp
