@@ -28,11 +28,15 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o server .
 # ==========================================
 FROM alpine:latest
 
-# 1. 安装基础工具：ca 证书（支持 HTTPS）、时区数据，以及音视频转码神器 ffmpeg
-# 在 GitHub 云端千兆国际网络环境下，直连官方源极速拉取，秒级完成！
+# 1. 核心加速：使用腾讯云内网专属源（走纯 http 免证书，内网千兆直连，秒级下完 109 个包！）
+RUN echo "http://mirrors.tencentyun.com/alpine/latest-stable/main" > /etc/apk/repositories && \
+    echo "http://mirrors.tencentyun.com/alpine/latest-stable/community" >> /etc/apk/repositories
+
+# 2. 安装基础工具：ca 证书、时区数据，以及音视频转码神器 ffmpeg
 RUN apk add --no-cache ca-certificates tzdata ffmpeg && \
     cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
     echo "Asia/Shanghai" > /etc/timezone
+
 
 
 WORKDIR /app

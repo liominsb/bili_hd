@@ -1,37 +1,31 @@
-name: Build and Deploy Go Backend (GitHub Cloud Build)
+name: Deploy Go Backend to Tencent Cloud
 
 on:
   push:
     branches: [ master, main ]
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. 从 GitHub 仓库检出代码
+      # 1. 检出后端代码
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 2. 在 GitHub 强大的云端构建机上打包 Docker 镜像并压缩导出（秒级完成 ffmpeg 安装与编译）
-      - name: Build Docker Image in GitHub Cloud
-        run: |
-          docker build -t go-bili:v1 .
-          docker save go-bili:v1 | gzip > server.tar.gz
-
-      # 3. 将打好的现成镜像包通过 SCP 传到腾讯云服务器
-      - name: Send Image Package to Tencent Cloud
+      # 2. 将轻量源码（仅几百 KB，秒级传输）通过 SCP 同步到腾讯云
+      - name: Copy files to Server via SCP
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: 22
-          source: "server.tar.gz"
-          target: "/root/gobili"
+          source: "."
+          target: "/root/gobili/go_bili"
 
-      # 4. 腾讯云服务器零负担开箱：导入镜像并平滑重启服务
-      - name: Load Image and Restart Container
+      # 3. 腾讯云利用机房内网源超高速下载 ffmpeg 并重建启动
+      - name: Deploy and Rebuild Docker Container
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -41,8 +35,5 @@ jobs:
           command_timeout: 10m
           script: |
             cd /root/gobili
-            # 导入现成镜像（几秒完成，不消耗服务器编译 CPU）
-            docker load < server.tar.gz
-            rm -f server.tar.gz
-            # 强制使用刚导入的最新镜像重启 server 容器
-            docker compose -f docker-compose.prod.yml up -d --force-recreate server
+            docker compose -f docker-compose.prod.yml up -d --build server
+
