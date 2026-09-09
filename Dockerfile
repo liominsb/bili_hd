@@ -29,7 +29,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o server .
 FROM alpine:latest
 
 # 1. 安装基础工具：ca 证书（支持 HTTPS）与时区数据（设置上海时区，保证日志和数据库时间准确）
-RUN apk add --no-cache ca-certificates tzdata && \
+RUN apk add --no-cache ca-certificates tzdata ffmpeg && \
     cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
     echo "Asia/Shanghai" > /etc/timezone
 
