@@ -45,6 +45,7 @@ func (s *authServiceImpl) Register(ctx context.Context, Username string, Passwor
 
 	user.Username = Username
 	user.Password = hashedPwd
+	user.Bio = "https://07akioni.oss-cn-beijing.aliyuncs.com/07akioni.jpeg"
 
 	if err := s.authRepo.Register(ctx, &user); err != nil {
 		return "", "", err
@@ -224,7 +225,6 @@ func (s *authServiceImpl) RefreshTokens(ctx context.Context, accountID uint, inc
 		}
 		return "", "", errors.New("RT 不匹配或已失效，强制要求重新走密码登录")
 	}
-
 
 	sessionID, err := s.redisClient.HGet(ctx, redisKey, "session_id").Result()
 	if err != nil {
