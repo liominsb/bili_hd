@@ -1,0 +1,30 @@
+# 配置模板：复制一份改名成 config.yml，再填入你自己的值
+#
+# config.yml 已经被 .gitignore 忽略（里面会有数据库密码、OAuth Client Secret 等），
+# 不要把填好真实值的 config.yml 提交上去。
+app:
+  name: App
+  port: :3000
+
+database:
+  dsn : "root:你的数据库密码@tcp(127.0.0.1:3306)/go_bili?charset=utf8mb4&parseTime=True&loc=Local"
+  MaxIdleConns: 10
+  MaxOpenConns: 100
+  Addr : "localhost:6379"
+  Password : ""
+  SubSwitch : "false"
+
+JWT:
+  Key : "换一个别人猜不到的随机串"
+
+RabbitMQ:
+  Url: "amqp://guest:guest@localhost:5672/"
+
+Grpc:
+  Addr: "localhost:50051"
+
+GitHub:
+  ClientID: "GitHub OAuth App 的 Client ID"
+  ClientSecret: "GitHub OAuth App 的 Client Secret（生产环境留空，走 GITHUB_CLIENT_SECRET 环境变量）"
+  RedirectURI: "http://localhost/api/auth/github/callback"
+  FrontendURL: "http://localhost/oauth/callback"

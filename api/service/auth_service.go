@@ -21,6 +21,7 @@ type AuthService interface {
 	ChangePassword(ctx context.Context, userID uint, oldPassword string, newPassword string) error
 	UpdateProfile(ctx context.Context, userID uint, username string, image string, bio string) error
 	RefreshTokens(ctx context.Context, accountID uint, incomingRT string, username string) (string, string, error)
+	IssueSession(ctx context.Context, user *models.User) (string, string, error) // 密码登录/注册/第三方登录共用的会话签发入口
 }
 
 type authServiceImpl struct {
@@ -34,6 +35,39 @@ func NewAuthService(authRepo repository.AuthRepository, redisClient *redis.Clien
 
 func userRedisKey(userID uint) string {
 	return fmt.Sprintf("USER:%d", userID)
+}
+
+// IssueSession 为一个身份已确认的用户开新会话并签发双 token。
+// 注册、密码登录、第三方登录三个入口都走这里，保证签发逻辑只有一份。
+func (s *authServiceImpl) IssueSession(ctx context.Context, user *models.User) (string, string, error) {
+	// 1. 生成唯一会话标识
+	sessionID := uuid.New().String()
+
+	token, err := utils.GenerateToken(user.ID, user.Username, sessionID)
+	if err != nil {
+		return "", "", fmt.Errorf("生成 token 失败: %w", err)
+	}
+
+	refreshToken, err := utils.GenerateRefreshToken()
+	if err != nil {
+		return "", "", fmt.Errorf("生成 refresh token 失败: %w", err)
+	}
+
+	redisKey := fmt.Sprintf("auth:account:%d", user.ID)
+
+	// HSet + Expire 用事务管道一起提交：
+	// 否则 HSet 成功、Expire 失败时这个 key 会永不过期 —— 会话永久有效、踢下线彻底失效
+	pipe := s.redisClient.TxPipeline()
+	pipe.HSet(ctx, redisKey,
+		"session_id", sessionID,
+		"refresh_token", refreshToken,
+	)
+	pipe.Expire(ctx, redisKey, 7*24*time.Hour)
+	if _, err := pipe.Exec(ctx); err != nil {
+		return "", "", fmt.Errorf("写入会话失败: %w", err)
+	}
+
+	return token, refreshToken, nil
 }
 
 func (s *authServiceImpl) Register(ctx context.Context, Username string, Password string) (string, string, error) {
@@ -51,69 +85,19 @@ func (s *authServiceImpl) Register(ctx context.Context, Username string, Passwor
 		return "", "", err
 	}
 
-	// 1. 生成唯一会话标识
-	sessionID := uuid.New().String()
-
-	token, err := utils.GenerateToken(user.ID, user.Username, sessionID)
-	if err != nil {
-		return "", "", err
-	}
-
-	refreshToken, err := utils.GenerateRefreshToken()
-	if err != nil {
-		return "", "", err
-	}
-
-	redisKey := fmt.Sprintf("auth:account:%d", user.ID)
-
-	// 使用 Redis Hash 存储当前合法的 Session 和 RT，设置 7 天过期
-	err = s.redisClient.HSet(ctx, redisKey,
-		"session_id", sessionID,
-		"refresh_token", refreshToken,
-	).Err()
-	if err != nil {
-		return "", "", err
-	}
-	s.redisClient.Expire(ctx, redisKey, 7*24*time.Hour)
-
-	return token, refreshToken, nil
+	return s.IssueSession(ctx, &user)
 }
 
 func (s *authServiceImpl) Login(ctx context.Context, Username string, Password string) (string, string, error) {
 	var user models.User
 	if err := s.authRepo.GetUserByUsername(ctx, &user, Username); err != nil {
-		return "", "", err
+		return "", "", errors.New("账号或密码错误")
 	}
 	if !utils.CheckPassword(Password, user.Password) {
-		return "", "", errors.New("密码错误")
+		return "", "", errors.New("账号或密码错误")
 	}
 
-	// 1. 生成唯一会话标识
-	sessionID := uuid.New().String()
-
-	token, err := utils.GenerateToken(user.ID, user.Username, sessionID)
-	if err != nil {
-		return "", "", errors.New("生成 token 失败")
-	}
-
-	refreshToken, err := utils.GenerateRefreshToken()
-	if err != nil {
-		return "", "", err
-	}
-
-	redisKey := fmt.Sprintf("auth:account:%d", user.ID)
-
-	// 使用 Redis Hash 存储当前合法的 Session 和 RT，设置 7 天过期
-	err = s.redisClient.HSet(ctx, redisKey,
-		"session_id", sessionID,
-		"refresh_token", refreshToken,
-	).Err()
-	if err != nil {
-		return "", "", err
-	}
-	s.redisClient.Expire(ctx, redisKey, 7*24*time.Hour)
-
-	return token, refreshToken, nil
+	return s.IssueSession(ctx, &user)
 }
 
 func (s *authServiceImpl) GetMyUser(ctx context.Context, userID uint) (*models.User, error) {

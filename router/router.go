@@ -18,6 +18,10 @@ func SetupRouter() *gin.Engine {
 		auth.POST("login", ctrl.AuthCtrl.Login)
 		auth.POST("register", ctrl.AuthCtrl.Register)
 		auth.POST("refreshTokens", ctrl.AuthCtrl.RefreshTokens)
+
+		// GitHub OAuth：login 负责跳到 GitHub，callback 是 GitHub 授权后回跳的落点
+		auth.GET("github/login", ctrl.OAuthCtrl.GitHubLogin)
+		auth.GET("github/callback", ctrl.OAuthCtrl.GitHubCallback)
 	}
 	apiRouter := r.Group("/api/v1")
 	{

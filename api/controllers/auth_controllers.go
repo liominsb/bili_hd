@@ -57,7 +57,7 @@ func (c *AuthController) Login(ctx *gin.Context) {
 	token, refreshToken, err := c.authService.Login(ctx.Request.Context(), input.Username, input.Password)
 	if err != nil {
 		log.Println("登录失败:", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "登录失败:" + err.Error()})
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "登录失败:" + err.Error()})
 		return
 	}
 

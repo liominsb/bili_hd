@@ -54,7 +54,7 @@ func GenerateToken(accountID uint, username string, sessionID string) (string, e
 		Username:  username,
 		SessionID: sessionID,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(now.Add(1 * time.Minute)), // 强制短有效，降低泄露风险
+			ExpiresAt: jwt.NewNumericDate(now.Add(15 * time.Minute)), // 强制短有效，降低泄露风险
 			IssuedAt:  jwt.NewNumericDate(now),
 			NotBefore: jwt.NewNumericDate(now),
 		},
