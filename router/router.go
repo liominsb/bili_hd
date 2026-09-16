@@ -8,11 +8,13 @@ import (
 
 // SetupRouter 设置路由
 func SetupRouter() *gin.Engine {
-	r := gin.Default()
+	//r := gin.Default()
+	r := gin.New()
+	r.Use(gin.Recovery())
 	ctrl := Inject()
 
 	r.Static("/uploads", "./uploads")
-
+	r.GET("/ping", func(c *gin.Context) { c.String(200, "pong") })
 	auth := r.Group("/api/auth")
 	{
 		auth.POST("login", ctrl.AuthCtrl.Login)
