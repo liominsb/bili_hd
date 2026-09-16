@@ -57,6 +57,7 @@ func main() {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
+				ctrl.VideoCtrl.FlushViewDelta()
 				ctrl.VideoCtrl.SyncViewCounts(ctx)
 			}
 		}

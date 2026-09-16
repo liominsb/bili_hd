@@ -10,6 +10,8 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -24,6 +26,7 @@ type VideoService interface {
 	SearchVideoByTitle(ctx context.Context, title string, offset int, limit int) ([]models.VideoInfoWithAuthor, error)
 	UpdateVideoLike(ctx context.Context, userid uint, videoID uint) (bool, error)
 	SyncViewCounts(ctx context.Context)
+	FlushViewDelta()
 }
 
 type videoServiceImpl struct {
@@ -69,6 +72,33 @@ func (s *videoServiceImpl) FindVideoByID(ctx context.Context, videoID uint) (*mo
 	return result, nil
 }
 
+type viewCounter struct {
+	total   atomic.Int64 // 本进程累计，只增不清，给页面显示用
+	pending atomic.Int64 // 待刷入 Redis，flush 后清零
+}
+
+var viewDelta sync.Map
+
+func addViewDelta(videoID uint) int64 {
+	v, _ := viewDelta.LoadOrStore(videoID, &viewCounter{})
+	t := v.(*viewCounter)
+	t.pending.Add(1)
+	return t.total.Add(1)
+}
+
+func (s *videoServiceImpl) FlushViewDelta() {
+	viewDelta.Range(func(k, v any) bool {
+		videoID := k.(uint)
+		t := v.(*viewCounter)
+		delta := t.pending.Swap(0)
+		if delta > 0 {
+			s.redisClient.IncrBy(context.Background(),
+				"video:views:"+strconv.FormatUint(uint64(videoID), 10), delta)
+		}
+		return true
+	})
+}
+
 func (s *videoServiceImpl) FindVideoByIDWithAuthor(ctx context.Context, videoID uint) (*models.VideoInfoWithAuthor, error) {
 	cacheKey := fmt.Sprintf("VIDEO:%d:author", videoID)
 	//展示滞后被缓存放大：详情走 GetCacheOrQuery，整个 VideoInfo 连 view_count 一起缓存 10~70 分钟。
@@ -76,13 +106,15 @@ func (s *videoServiceImpl) FindVideoByIDWithAuthor(ctx context.Context, videoID 
 	result, err := utils.GetCacheOrQuery(ctx, s.redisClient, cacheKey, func() (*models.VideoInfoWithAuthor, error) {
 		return s.videoRepo.FindVideoByIDWithAuthor(ctx, videoID)
 	})
-	if err != nil {
+	if err != nil || result == nil {
 		return nil, err
 	}
-	delta, err := s.redisClient.Incr(ctx, "video:views:"+strconv.FormatUint(uint64(result.ID), 10)).Result()
-	if err == nil {
-		result.ViewCount += int(delta)
-	}
+	//delta, err := s.redisClient.Incr(ctx, "video:views:"+strconv.FormatUint(uint64(result.ID), 10)).Result()
+	//if err == nil {
+	//	result.ViewCount += int(delta)
+	//}
+
+	result.ViewCount += int(addViewDelta(videoID))
 	return result, nil
 }
 
@@ -134,6 +166,7 @@ func (s *videoServiceImpl) UpdateVideoLike(ctx context.Context, userid uint, vid
 	return true, nil
 }
 
+// SyncViewCounts redis->sql
 func (s *videoServiceImpl) SyncViewCounts(ctx context.Context) {
 	keys, err := s.redisClient.Keys(ctx, "video:views:*").Result()
 	if err != nil {

@@ -196,3 +196,7 @@ func (c *VideoController) UpdateVideoLike(ctx *gin.Context) {
 func (c *VideoController) SyncViewCounts(ctx context.Context) {
 	c.videoService.SyncViewCounts(ctx)
 }
+
+func (c *VideoController) FlushViewDelta() {
+	c.videoService.FlushViewDelta()
+}
