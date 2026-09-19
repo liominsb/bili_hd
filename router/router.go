@@ -8,9 +8,9 @@ import (
 
 // SetupRouter 设置路由
 func SetupRouter() *gin.Engine {
-	//r := gin.Default()
-	r := gin.New()
-	r.Use(gin.Recovery())
+	r := gin.Default()
+	//r := gin.New()
+	//r.Use(gin.Recovery())
 	ctrl := Inject()
 
 	r.Static("/uploads", "./uploads")
@@ -57,6 +57,12 @@ func SetupRouter() *gin.Engine {
 		// 关注/取关需要登录
 		apiRouter.PUT("users/:id/follow", ctrl.FollowCtrl.Follow)
 		apiRouter.DELETE("users/:id/follow", ctrl.FollowCtrl.Unfollow)
+
+		// 播放历史：me 只认 JWT 里的 userID，全部需要登录
+		apiRouter.PUT("videos/:id/history", ctrl.HistoryCtrl.ReportHistory)
+		apiRouter.DELETE("videos/:id/history", ctrl.HistoryCtrl.DeleteHistory)
+		apiRouter.GET("users/me/history", ctrl.HistoryCtrl.ListHistory)
+		apiRouter.DELETE("users/me/history", ctrl.HistoryCtrl.ClearHistory)
 	}
 	return r
 }
