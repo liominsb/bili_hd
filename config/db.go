@@ -31,7 +31,7 @@ func initDB() {
 	global.Db = db
 
 	err = global.Db.AutoMigrate(&models.User{}, &models.Comments{}, &models.VideoInfo{},
-		&models.VideoLike{}, &models.Follow{}, &models.OAuthBinding{}, &models.PlayHistory{})
+		&models.VideoLike{}, &models.Follow{}, &models.OAuthBinding{}, &models.PlayHistory{}, &models.Favorite{})
 
 	if err != nil {
 		log.Fatalf("数据库表结构同步失败: %v", err)

@@ -8,56 +8,50 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/redis/go-redis/v9"
 )
 
-// 认证中间件
-func AuthMiddleware() gin.HandlerFunc {
+// ParseAuthMiddleware 解析 token：合法就写入 ID，没有/无效/被踢都放行（永不 401）
+// 全组挂载——公开路由靠它拿到"可选的登录态"
+func ParseAuthMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		token := ctx.GetHeader("Authorization")
 		if token != "" && strings.HasPrefix(token, "Bearer ") {
 			token = token[7:]
 		} else if queryToken := ctx.Query("token"); queryToken != "" {
-			// 支持 WebSocket 等无法设置 Header 的场景，从查询参数获取 token
 			token = queryToken
 		} else {
-			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "未授权"})
-			ctx.Abort()
+			ctx.Next() // 没带 token：游客，放行
 			return
 		}
 
 		claims, err := utils.ParseToken(token)
 		if err != nil {
-			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "无效令牌"})
-			ctx.Abort()
+			ctx.Next() // token 无效：视同游客
 			return
 		}
 
-		// 防踢人下线校验：查询 Redis 中的合法 SessionID
+		// 防踢校验：session 对不上视同游客，不写 ID
 		redisKey := fmt.Sprintf("auth:account:%d", claims.AccountID)
 		activeSessionID, err := global.RedisDB.HGet(ctx.Request.Context(), redisKey, "session_id").Result()
-
-		if err == redis.Nil {
-			// Redis 中找不到记录，说明登录已过期或被后台强制清除
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "会话已结束或终止"})
-			return
-		} else if err != nil {
-			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "内部服务器错误"})
-			return
-		}
-
-		if claims.SessionID != activeSessionID {
-			// Token 里的 SessionID 与服务器当前的 SessionID 不一致
-			// 说明该账号已经在其他设备登录，当前设备被踢下线！
-			ctx.AbortWithStatusJSON(http.StatusConflict, gin.H{
-				"error": "kicked_out",
-				"msg":   "您已在其他设备登录，当前设备被迫下线",
-			})
+		if err != nil || claims.SessionID != activeSessionID {
+			ctx.Next()
 			return
 		}
 
 		ctx.Set("ID", claims.AccountID)
 		ctx.Set("Username", claims.Username)
+		ctx.Next()
+	}
+}
+
+// RequireAuthMiddleware 硬认证：前面没人写入 ID 就 401
+// 只检查不解析——token 的活全在 Parse 里
+func RequireAuthMiddleware() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		if _, ok := ctx.Get("ID"); !ok {
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "未授权"})
+			return
+		}
 		ctx.Next()
 	}
 }

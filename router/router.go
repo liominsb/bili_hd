@@ -26,6 +26,7 @@ func SetupRouter() *gin.Engine {
 		auth.GET("github/callback", ctrl.OAuthCtrl.GitHubCallback)
 	}
 	apiRouter := r.Group("/api/v1")
+	apiRouter.Use(middlewares.ParseAuthMiddleware())
 	{
 		apiRouter.GET("videos/:id", ctrl.VideoCtrl.FindVideoByID)
 		apiRouter.GET("videos", ctrl.VideoCtrl.GetVideos)
@@ -38,8 +39,11 @@ func SetupRouter() *gin.Engine {
 		apiRouter.GET("users/:id/follow/stats", ctrl.FollowCtrl.GetFollowStats)
 		apiRouter.GET("users/:id/followers", ctrl.FollowCtrl.ListFollowers)
 		apiRouter.GET("users/:id/following", ctrl.FollowCtrl.ListFollowing)
+
+		// 收藏数公开可看，is_favorite 只对登录用户有意义
+		apiRouter.GET("videos/:id/favorite/stats", ctrl.FavoriteCtrl.GetFavoriteStats)
 	}
-	apiRouter.Use(middlewares.AuthMiddleware())
+	apiRouter.Use(middlewares.RequireAuthMiddleware())
 	{
 		apiRouter.POST("videos", ctrl.VideoCtrl.AddNewVideo)
 		apiRouter.PUT("videos/:id", ctrl.VideoCtrl.UpdateVideo)
@@ -63,6 +67,11 @@ func SetupRouter() *gin.Engine {
 		apiRouter.DELETE("videos/:id/history", ctrl.HistoryCtrl.DeleteHistory)
 		apiRouter.GET("users/me/history", ctrl.HistoryCtrl.ListHistory)
 		apiRouter.DELETE("users/me/history", ctrl.HistoryCtrl.ClearHistory)
+
+		// 收藏/取消收藏 + 我的收藏列表：全部需要登录
+		apiRouter.PUT("videos/:id/favorite", ctrl.FavoriteCtrl.Favorite)
+		apiRouter.DELETE("videos/:id/favorite", ctrl.FavoriteCtrl.Unfavorite)
+		apiRouter.GET("users/me/favorites", ctrl.FavoriteCtrl.ListMyFavorites)
 	}
 	return r
 }
