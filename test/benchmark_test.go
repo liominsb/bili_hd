@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-const targetVideoListURL = "http://127.0.0.1:3000/api/v1/videos?offset=0&limit=10"
+const targetVideoListURL = "http://43.138.153.144/api/v1/videos?offset=0&limit=10"
 
 // 1. 基准测试：视频详情真实 HTTP API 接口吞吐
 func BenchmarkVideoDetail_RealAPI(b *testing.B) {
@@ -16,7 +16,7 @@ func BenchmarkVideoDetail_RealAPI(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			resp, err := realHTTPClient.Get(targetVideoURL)
+			resp, err := realHTTPClient.Get("http://43.138.153.144/api/v1/videos/1")
 			if err == nil {
 				_, _ = io.Copy(io.Discard, resp.Body)
 				_ = resp.Body.Close()
