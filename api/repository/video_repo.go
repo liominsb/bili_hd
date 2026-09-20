@@ -18,6 +18,7 @@ type VideoRepository interface {
 	AddVideoLike(ctx context.Context, userid uint, videoID uint) error
 	DelVideoLike(ctx context.Context, userid uint, videoID uint) error
 	GetUserANDVideoLike(ctx context.Context, userid uint, videoID uint) (bool, error)
+	GetVideoLikeCount(ctx context.Context, videoID uint) (int, error)
 	SyncViewCounts(ctx context.Context, videoID uint, count int) error
 }
 type videoRepoImpl struct {
@@ -40,6 +41,7 @@ func (r *videoRepoImpl) FindVideoByID(ctx context.Context, video *models.VideoIn
 	return r.db.WithContext(ctx).Where("id = ?", videoID).First(video).Error
 }
 
+// FindVideoByIDWithAuthor 按视频ID查找，并带上作者信息
 func (r *videoRepoImpl) FindVideoByIDWithAuthor(ctx context.Context, videoID uint) (*models.VideoInfoWithAuthor, error) {
 	result := &models.VideoInfoWithAuthor{}
 	err := r.db.WithContext(ctx).
@@ -89,33 +91,20 @@ func (r *videoRepoImpl) GetUserANDVideoLike(ctx context.Context, userid uint, vi
 }
 
 func (r *videoRepoImpl) AddVideoLike(ctx context.Context, userid uint, videoID uint) error {
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		err := tx.Model(&models.VideoInfo{}).Where("id = ?", videoID).
-			Update("like_count", gorm.Expr("like_count + 1")).Error
-		if err != nil {
-			return err
-		}
-		err = tx.Model(&models.VideoLike{}).Create(&models.VideoLike{VideoId: videoID, UserID: userid}).Error
-		if err != nil {
-			return err
-		}
-		return nil
-	})
+	return r.db.WithContext(ctx).Create(&models.VideoLike{VideoId: videoID, UserID: userid}).Error
 }
 
 func (r *videoRepoImpl) DelVideoLike(ctx context.Context, userid uint, videoID uint) error {
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		err := tx.Model(&models.VideoInfo{}).Where("id = ?", videoID).
-			Update("like_count", gorm.Expr("like_count - 1")).Error
-		if err != nil {
-			return err
-		}
-		err = tx.Model(&models.VideoLike{}).Where("video_id = ? AND user_id = ?", videoID, userid).Delete(&models.VideoLike{}).Error
-		if err != nil {
-			return err
-		}
-		return nil
-	})
+	return r.db.WithContext(ctx).
+		Where("video_id = ? AND user_id = ?", videoID, userid).
+		Delete(&models.VideoLike{}).Error
+}
+
+func (r *videoRepoImpl) GetVideoLikeCount(ctx context.Context, videoID uint) (int, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&models.VideoLike{}).
+		Where("video_id = ?", videoID).Count(&count).Error
+	return int(count), err
 }
 
 // SyncViewCounts count:追加的播放量

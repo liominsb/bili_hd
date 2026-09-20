@@ -25,6 +25,8 @@ type VideoService interface {
 	DeleteVideo(ctx context.Context, id uint) error
 	SearchVideoByTitle(ctx context.Context, title string, offset int, limit int) ([]models.VideoInfoWithAuthor, error)
 	UpdateVideoLike(ctx context.Context, userid uint, videoID uint) (bool, error)
+	IsLiked(ctx context.Context, userid uint, videoID uint) (bool, error)
+	GetLikeCount(ctx context.Context, videoID uint) (int, error)
 	SyncViewCounts(ctx context.Context)
 	FlushViewDelta()
 }
@@ -99,6 +101,7 @@ func (s *videoServiceImpl) FlushViewDelta() {
 	})
 }
 
+// FindVideoByIDWithAuthor 按视频ID查找，并带上作者信息
 func (s *videoServiceImpl) FindVideoByIDWithAuthor(ctx context.Context, videoID uint) (*models.VideoInfoWithAuthor, error) {
 	cacheKey := fmt.Sprintf("VIDEO:%d:author", videoID)
 	//展示滞后被缓存放大：详情走 GetCacheOrQuery，整个 VideoInfo 连 view_count 一起缓存 10~70 分钟。
@@ -164,6 +167,14 @@ func (s *videoServiceImpl) UpdateVideoLike(ctx context.Context, userid uint, vid
 		return false, err
 	}
 	return true, nil
+}
+
+func (s *videoServiceImpl) IsLiked(ctx context.Context, userid uint, videoID uint) (bool, error) {
+	return s.videoRepo.GetUserANDVideoLike(ctx, userid, videoID)
+}
+
+func (s *videoServiceImpl) GetLikeCount(ctx context.Context, videoID uint) (int, error) {
+	return s.videoRepo.GetVideoLikeCount(ctx, videoID)
 }
 
 // SyncViewCounts redis->sql

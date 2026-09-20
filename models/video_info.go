@@ -15,7 +15,6 @@ type VideoInfo struct {
 	Title     string         `gorm:"size:255;index" json:"title"`
 	Pic       string         `json:"pic"`
 	VideoUrl  string         `json:"video_url"`
-	LikeCount int            `gorm:"default:0" json:"like_count"`
 	ViewCount int            `gorm:"default:0" json:"view_count"`
 	Duration  int            `gorm:"default:0" json:"duration"` // 视频总时长，秒
 	//// 状态字段：0: 转码处理中, 1: 正常/已发布, 2: 转码失败

@@ -34,14 +34,14 @@ func SetupRouter() *gin.Engine {
 		apiRouter.GET("users/:id", ctrl.AuthCtrl.GetUserProfileById)
 		apiRouter.GET("videos/:id/comments", ctrl.CommentCtrl.GetCommentsByVideoId)
 		apiRouter.GET("videos/search", ctrl.VideoCtrl.SearchVideoByTitle)
+		apiRouter.GET("videos/:id/like/stats", ctrl.VideoCtrl.GetLikeStats)
+		apiRouter.GET("videos/:id/favorite/stats", ctrl.FavoriteCtrl.GetFavoriteStats)
 
 		// 关注系统：stats / 粉丝列表 / 关注列表 公开，未登录也能看
 		apiRouter.GET("users/:id/follow/stats", ctrl.FollowCtrl.GetFollowStats)
 		apiRouter.GET("users/:id/followers", ctrl.FollowCtrl.ListFollowers)
 		apiRouter.GET("users/:id/following", ctrl.FollowCtrl.ListFollowing)
 
-		// 收藏数公开可看，is_favorite 只对登录用户有意义
-		apiRouter.GET("videos/:id/favorite/stats", ctrl.FavoriteCtrl.GetFavoriteStats)
 	}
 	apiRouter.Use(middlewares.RequireAuthMiddleware())
 	{

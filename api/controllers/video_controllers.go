@@ -193,6 +193,36 @@ func (c *VideoController) UpdateVideoLike(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"ok": ok})
 }
 
+func (c *VideoController) GetLikeStats(ctx *gin.Context) {
+	videoID, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "无效的视频ID"})
+		return
+	}
+
+	var isLiked bool
+	if uid, ok := ctx.Get("ID"); ok {
+		isLiked, err = c.videoService.IsLiked(ctx.Request.Context(), uid.(uint), uint(videoID))
+		if err != nil {
+			log.Println("查询点赞状态失败:", err.Error())
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
+	likeCount, err := c.videoService.GetLikeCount(ctx.Request.Context(), uint(videoID))
+	if err != nil {
+		log.Println("统计点赞数失败:", err.Error())
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"like_count": likeCount,
+		"is_liked":   isLiked,
+	})
+}
+
 func (c *VideoController) SyncViewCounts(ctx context.Context) {
 	c.videoService.SyncViewCounts(ctx)
 }
