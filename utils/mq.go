@@ -58,7 +58,17 @@ func Worker(ctx context.Context) {
 					return
 				}
 				log.Printf("收到视频 %s 转码任务，文件路径: %s", task.FName, task.FilePath)
+				err = Download(task.FName, task.FilePath)
+				if err != nil {
+					_ = d.Nack(false, false)
+					return
+				}
 				err = Faststart(task.FilePath)
+				if err != nil {
+					d.Nack(false, false)
+					return
+				}
+				_, err = Upload(task.FName, task.FilePath, "video/mp4") // 同名 key 覆盖
 				if err != nil {
 					d.Nack(false, false)
 					return

@@ -34,6 +34,11 @@ type Config struct {
 		RedirectURI  string
 		FrontendURL  string
 	}
+	Cos struct {
+		SecretID  string
+		SecretKey string
+		BucketURL string
+	}
 }
 
 var Appconf *Config
@@ -60,9 +65,17 @@ func InitConfig() {
 	if secret := os.Getenv("GITHUB_CLIENT_SECRET"); secret != "" {
 		Appconf.GitHub.ClientSecret = secret
 	}
+	// COS 的密钥同理，环境变量名加上 COS_ 前缀避免和宿主机上别的变量撞名
+	if id := os.Getenv("COS_SECRET_ID"); id != "" {
+		Appconf.Cos.SecretID = id
+	}
+	if key := os.Getenv("COS_SECRET_KEY"); key != "" {
+		Appconf.Cos.SecretKey = key
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	initDB()
 	initRedis(ctx)
 	InitRabbitMQ()
+	InitCOSClient()
 }

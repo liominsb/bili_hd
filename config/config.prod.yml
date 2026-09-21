@@ -27,3 +27,8 @@ GitHub:
   ClientSecret: ""                                  # 故意留空，由环境变量注入
   RedirectURI: "http://43.138.153.144/api/auth/github/callback"
   FrontendURL: "http://43.138.153.144/oauth/callback"
+
+Cos:
+  SecretID: ""
+  SecretKey: ""
+  BucketURL: "https://bili-1411432941.cos.ap-guangzhou.myqcloud.com"
