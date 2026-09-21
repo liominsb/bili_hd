@@ -11,3 +11,4 @@ server
 uploads/
 *.log
 *.tmp
+config/config.yml

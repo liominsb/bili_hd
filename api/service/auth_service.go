@@ -79,7 +79,8 @@ func (s *authServiceImpl) Register(ctx context.Context, Username string, Passwor
 
 	user.Username = Username
 	user.Password = hashedPwd
-	user.Bio = "https://07akioni.oss-cn-beijing.aliyuncs.com/07akioni.jpeg"
+	user.Bio = "这个人什么也没说"
+	user.Image = "https://i0.hdslb.com/bfs/face/d413e1275b3a6e97dc9c812afc21d7b46f231f50.jpg@96w_96h_1c_1s_!web-avatar.avif"
 
 	if err := s.authRepo.Register(ctx, &user); err != nil {
 		return "", "", err

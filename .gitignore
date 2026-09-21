@@ -23,6 +23,10 @@ tmp/
 # 上传文件目录
 /uploads/
 
+# 批量上传工具的状态文件（含本地绝对路径，不入库）
+bulk_state.json
+bulk_pending.json
+
 # 编辑器
 .idea
 .vscode/*
