@@ -54,11 +54,13 @@ func (s *favoriteServiceImpl) ListMyFavorites(ctx context.Context, userID uint, 
 	return list, nil
 }
 
-// checkVideoExists 校验视频存在：走 videoService.FindVideoByID（带 GetCacheOrQuery 缓存）
-// 用户点收藏前刚在播放页看过这个视频，VIDEO:<id> 大概率已在 Redis 里，校验基本零成本
+// checkVideoExists 校验视频存在：与视频详情共用 VIDEO:<id> 缓存
 func (s *favoriteServiceImpl) checkVideoExists(ctx context.Context, videoID uint) error {
-	_, err := s.videoService.FindVideoByID(ctx, videoID)
+	video, err := s.videoService.FindVideoByID(ctx, videoID)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return errors.New("视频不存在")
+	}
+	if video == nil && err == nil {
 		return errors.New("视频不存在")
 	}
 	return err

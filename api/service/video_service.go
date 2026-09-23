@@ -33,11 +33,16 @@ type VideoService interface {
 
 type videoServiceImpl struct {
 	videoRepo   repository.VideoRepository
+	authService AuthService
 	redisClient *redis.Client
 }
 
-func NewVideoService(videoRepo repository.VideoRepository, redisClient *redis.Client) VideoService {
-	return &videoServiceImpl{videoRepo: videoRepo, redisClient: redisClient}
+func NewVideoService(videoRepo repository.VideoRepository, authService AuthService, redisClient *redis.Client) VideoService {
+	return &videoServiceImpl{videoRepo: videoRepo, authService: authService, redisClient: redisClient}
+}
+
+func videoCacheKey(id uint) string {
+	return fmt.Sprintf("VIDEO:%d", id)
 }
 
 func (s *videoServiceImpl) AddNewVideo(ctx context.Context, video *models.VideoInfo) error {
@@ -47,7 +52,7 @@ func (s *videoServiceImpl) AddNewVideo(ctx context.Context, video *models.VideoI
 	return nil
 }
 func (s *videoServiceImpl) UpdateVideo(ctx context.Context, video *models.VideoInfo) error {
-	cacheKey := fmt.Sprintf("VIDEO:%d", video.ID)
+	cacheKey := videoCacheKey(video.ID)
 	err := s.videoRepo.UpdateVideo(ctx, video)
 	if err != nil {
 		return err
@@ -60,7 +65,7 @@ func (s *videoServiceImpl) UpdateVideo(ctx context.Context, video *models.VideoI
 }
 
 func (s *videoServiceImpl) FindVideoByID(ctx context.Context, videoID uint) (*models.VideoInfo, error) {
-	cacheKey := fmt.Sprintf("VIDEO:%d", videoID)
+	cacheKey := videoCacheKey(videoID)
 	result, err := utils.GetCacheOrQuery(ctx, s.redisClient, cacheKey, func() (*models.VideoInfo, error) {
 		video := &models.VideoInfo{}
 		if err := s.videoRepo.FindVideoByID(ctx, video, videoID); err != nil {
@@ -103,20 +108,20 @@ func (s *videoServiceImpl) FlushViewDelta() {
 
 // FindVideoByIDWithAuthor 按视频ID查找，并带上作者信息
 func (s *videoServiceImpl) FindVideoByIDWithAuthor(ctx context.Context, videoID uint) (*models.VideoInfoWithAuthor, error) {
-	cacheKey := fmt.Sprintf("VIDEO:%d:author", videoID)
-	//展示滞后被缓存放大：详情走 GetCacheOrQuery，整个 VideoInfo 连 view_count 一起缓存 10~70 分钟。
-	//所以页面上看到的播放数最多滞后一小时，10 秒同步的及时性全被这层缓存吃了。
-	result, err := utils.GetCacheOrQuery(ctx, s.redisClient, cacheKey, func() (*models.VideoInfoWithAuthor, error) {
-		return s.videoRepo.FindVideoByIDWithAuthor(ctx, videoID)
-	})
-	if err != nil || result == nil {
+	video, err := s.FindVideoByID(ctx, videoID)
+	if err != nil || video == nil {
 		return nil, err
 	}
-	//delta, err := s.redisClient.Incr(ctx, "video:views:"+strconv.FormatUint(uint64(result.ID), 10)).Result()
-	//if err == nil {
-	//	result.ViewCount += int(delta)
-	//}
-
+	author, err := s.authService.GetUserProfileById(ctx, video.AuthorId)
+	if err != nil || author == nil {
+		return nil, err
+	}
+	result := &models.VideoInfoWithAuthor{
+		VideoInfo:   *video,
+		AuthorName:  author.Username,
+		AuthorImage: author.Image,
+		AuthorBio:   author.Bio,
+	}
 	result.ViewCount += int(addViewDelta(videoID))
 	return result, nil
 }
@@ -130,7 +135,7 @@ func (s *videoServiceImpl) GetVideos(ctx context.Context, offset int, limit int)
 }
 
 func (s *videoServiceImpl) DeleteVideo(ctx context.Context, id uint) error {
-	cacheKey := fmt.Sprintf("VIDEO:%d", id)
+	cacheKey := videoCacheKey(id)
 	err := s.videoRepo.DeleteVideoByID(ctx, id)
 	if err != nil {
 		return err

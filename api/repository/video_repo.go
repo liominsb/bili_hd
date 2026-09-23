@@ -11,7 +11,6 @@ type VideoRepository interface {
 	AddNewVideo(ctx context.Context, video *models.VideoInfo) error
 	UpdateVideo(ctx context.Context, video *models.VideoInfo) error
 	FindVideoByID(ctx context.Context, video *models.VideoInfo, videoID uint) error
-	FindVideoByIDWithAuthor(ctx context.Context, videoID uint) (*models.VideoInfoWithAuthor, error)
 	GetVideos(ctx context.Context, videos *[]models.VideoInfoWithAuthor, offset int, limit int) error
 	DeleteVideoByID(ctx context.Context, videoID uint) error
 	SearchVideoByTitle(ctx context.Context, videos *[]models.VideoInfoWithAuthor, title string, offset int, limit int) error
@@ -39,21 +38,6 @@ func (r *videoRepoImpl) UpdateVideo(ctx context.Context, video *models.VideoInfo
 
 func (r *videoRepoImpl) FindVideoByID(ctx context.Context, video *models.VideoInfo, videoID uint) error {
 	return r.db.WithContext(ctx).Where("id = ?", videoID).First(video).Error
-}
-
-// FindVideoByIDWithAuthor 按视频ID查找，并带上作者信息
-func (r *videoRepoImpl) FindVideoByIDWithAuthor(ctx context.Context, videoID uint) (*models.VideoInfoWithAuthor, error) {
-	result := &models.VideoInfoWithAuthor{}
-	err := r.db.WithContext(ctx).
-		Table("video_infos").
-		Select("video_infos.*, users.username AS author_name, users.image AS author_image, users.bio AS author_bio").
-		Joins("LEFT JOIN users ON users.id = video_infos.author_id").
-		Where("video_infos.id = ?", videoID).
-		First(result).Error
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
 }
 
 func (r *videoRepoImpl) GetVideos(ctx context.Context, videos *[]models.VideoInfoWithAuthor, offset int, limit int) error {
